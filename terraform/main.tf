@@ -1,0 +1,8 @@
+# ------------------------------
+# ECR Repositories
+# ------------------------------
+module "ecr" {
+  source     = "./modules/ecr"
+  env        = var.env
+  org_prefix = var.org_prefix
+}
