@@ -7,3 +7,7 @@ module "ecr" {
   org_prefix = var.org_prefix
   repositories = var.repositories
 }
+  
+module "iam" {
+  source = "./modules/iam"
+}
