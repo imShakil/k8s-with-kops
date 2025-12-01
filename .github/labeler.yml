@@ -1,0 +1,48 @@
+terraform:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'terraform/**/*.tf'
+      - 'terraform/**/*.tfvars'
+
+kubernetes:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'kops/**/*.yaml'
+      - 'kops/**/*.yml'
+
+vpc:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'terraform/modules/vpc/**'
+
+iam:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'terraform/modules/iam/**'
+
+ec2:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'terraform/modules/ec2/**'
+
+ecr:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'terraform/modules/ecr/**'
+
+rds:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'terraform/modules/rds/**'
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**'
+      - 'README.md'
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+      - '.gitignore'
