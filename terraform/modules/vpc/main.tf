@@ -79,9 +79,7 @@ resource "aws_vpc_security_group_ingress_rule" "allow_https" {
 resource "aws_vpc_security_group_ingress_rule" "allows_vpc_internal" {
     security_group_id = aws_security_group.kops_sg.id
     cidr_ipv4         = var.vpc_cidr
-    from_port         = 0
     ip_protocol       = "-1"
-    to_port           = 0
 }
 
 resource "aws_vpc_security_group_egress_rule" "allows_egress_all" {
@@ -96,7 +94,7 @@ resource "aws_subnet" "public_subnets" {
     vpc_id = aws_vpc.kops_vpc.id
     cidr_block = local.public_subnets[count.index]
     map_public_ip_on_launch = true
-    availability_zone = data.aws_availability_zones.available.names[count.index % length(data.aws_availability_zones.azs.names)]
+    availability_zone = data.aws_availability_zones.azs.names[count.index % length(data.aws_availability_zones.azs.names)]
     tags = {
         Name = "${var.prefix}-public-subnet-${count.index + 1}"
     }
@@ -106,7 +104,7 @@ resource "aws_subnet" "private_subnets" {
   count = var.subnet_size
   vpc_id = aws_vpc.kops_vpc.id
   cidr_block = local.private_subnets[count.index]
-  availability_zone = data.aws_availability_zones.available.names[count.index % length(data.aws_availability_zones.azs.names)]
+  availability_zone = data.aws_availability_zones.azs.names[count.index % length(data.aws_availability_zones.azs.names)]
   tags = {
     Name = "${var.prefix}-private-subnet-${count.index + 1}"
   }
