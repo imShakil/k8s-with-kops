@@ -53,6 +53,31 @@ resource "aws_security_group" "kops_sg" {
   }
 }
 
+resource "aws_security_group" "rds_sg" {
+  name        = "${var.prefix}-rds-rds_sg_id"
+  description = "Security group for RDS"
+  vpc_id      = aws_vpc.kops_vpc.id
+
+  ingress {
+    from_port   = 3306  # or MySQL port, depending on DB engine
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["10.10.0.0/16"]  # or your allowed CIDRs
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.prefix}-rds-sg"
+  }
+}
+
+
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh" {
   security_group_id = aws_security_group.kops_sg.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -121,3 +146,4 @@ resource "aws_route_table_association" "private_rt_association" {
     subnet_id = aws_subnet.private_subnets[count.index].id
     route_table_id = aws_route_table.kops_private_rt.id
 }
+

@@ -1,3 +1,8 @@
+variable "vpc_id" {
+  description = "The VPC ID where RDS will be deployed"
+  type        = string
+}
+
 variable "db_name" {
   type = string
   description = "database name"
@@ -11,11 +16,6 @@ variable "db_user" {
 variable "db_pass" {
   type = string
   description = "database password"
-}
-
-variable "priv_sg_id" {
-  type = string
-  description = "list security security groups in for private subnet(s) "
 }
 
 variable "env" {
@@ -35,4 +35,9 @@ variable "region" {
 
 variable "db_subnet_ids" {
   type = list(string)
+}
+
+variable "kops_sg_id" {
+  description = "Security group ID of Kops nodes allowed to access RDS"
+  type        = string
 }

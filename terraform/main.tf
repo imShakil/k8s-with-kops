@@ -22,6 +22,8 @@ module "iam" {
 module "vpc" {
   source = "./modules/vpc"
   prefix = "${var.prefix}-${var.env}"
+  vpc_cidr     = var.vpc_cidr
+  subnet_size  = var.subnet_size
 }
 
 # ------------------------------
@@ -54,16 +56,23 @@ module "kops_state_store" {
   }
 }
 
+# ------------------------------
+# RDS - rds cluster
+# ------------------------------
 module "rds" {
-  source = "./modules/rds"
-  region = var.region
-  priv_sg_id = ""
-  env = var.env
-  prefix = ""
-  db_name = var.db_name
-  db_pass = var.db_pass
-  db_user = var.db_user
-  db_subnet_ids = ""
+  source      = "./modules/rds"
+  region      = var.region
+  env         = var.env
+  prefix      = var.prefix
+  db_name     = var.db_name
+  db_user     = var.db_user
+  db_pass     = var.db_pass
+  vpc_id             = module.vpc.vpc_info.vpc_id
+  kops_sg_id         = module.vpc.vpc_info.kops_sg_id
+  db_subnet_ids      = module.vpc.vpc_info.private_subnet_ids
+  
+  }
+
 # ------------------------------
 # EC2 - kOps Admin
 # ------------------------------

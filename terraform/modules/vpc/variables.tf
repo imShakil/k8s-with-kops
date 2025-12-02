@@ -1,8 +1,10 @@
 variable "prefix" {
+  type        = string
   default = "k8s"
 }
 
 variable "vpc_cidr" {
+  type        = string
   default = "10.10.0.0/16"
 }
 
@@ -17,6 +19,7 @@ variable "private_subnets" {
 }
 
 variable "subnet_size" {
-    default = 2
-    description = "Number of subnets to create (public and private)"
+  type        = number
+  default = 2
+  description = "Number of subnets to create (public and private)"
 }

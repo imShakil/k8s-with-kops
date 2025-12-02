@@ -24,6 +24,12 @@ variable "instance_type" {
   default     = "t2.medium"
 }
 
+variable "attach_admin_managed_policy" {
+  type    = bool
+  default = true
+}
+
+
 variable "key_name" {
   description = "SSH key pair name for EC2 access"
   type        = string
