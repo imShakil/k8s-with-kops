@@ -54,6 +54,16 @@ module "kops_state_store" {
   }
 }
 
+module "rds" {
+  source = "./modules/rds"
+  region = var.region
+  priv_sg_id = ""
+  env = var.env
+  prefix = ""
+  db_name = var.db_name
+  db_pass = var.db_pass
+  db_user = var.db_user
+  db_subnet_ids = ""
 # ------------------------------
 # EC2 - kOps Admin
 # ------------------------------
