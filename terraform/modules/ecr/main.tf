@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "repos" {
   for_each = toset(var.repositories)
-  name     = "${var.org_prefix}-${var.env}-${each.value}"
+  name     = "${var.prefix}-${var.env}-${each.value}"
 }
 
 resource "aws_ecr_lifecycle_policy" "repos" {
