@@ -7,6 +7,6 @@ variable "env" {
   type = string 
 }
 
-variable "org_prefix" {
+variable "prefix" {
   type = string 
 }

@@ -1,11 +1,10 @@
 variable "env" {
-  type = string
+  type    = string
   default = "dev"
 }
 
-variable "org_prefix" {
-  type = string
-  default = "kops"
+variable "prefix" {
+  default = "k8s"
 }
 
 variable "repositories" {
@@ -35,4 +34,15 @@ variable "db_user" {
 variable "db_pass" {
   type = string
   description = "database password"
+variable "instance_type" {
+  default = "t2.medium"
+}
+
+variable "key_name" {
+  default = "kops-admin-key"
+}
+
+variable "allowed_cidrs" {
+  type    = list(string)
+  default = ["0.0.0.0/0"]
 }

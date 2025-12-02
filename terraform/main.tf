@@ -2,9 +2,9 @@
 # ECR Repositories
 # ------------------------------
 module "ecr" {
-  source     = "./modules/ecr"
-  env        = var.env
-  org_prefix = var.org_prefix
+  source       = "./modules/ecr"
+  env          = var.env
+  prefix       = var.prefix
   repositories = var.repositories
 }
 
@@ -13,15 +13,15 @@ module "ecr" {
 # ------------------------------
 module "iam" {
   source = "./modules/iam"
-  prefix = "${var.org_prefix}-${var.env}"
+  prefix = "${var.prefix}-${var.env}"
 }
 
 # ------------------------------
 # VPC
 # ------------------------------
 module "vpc" {
-  source     = "./modules/vpc"
-  prefix = "${var.org_prefix}-${var.env}"
+  source = "./modules/vpc"
+  prefix = "${var.prefix}-${var.env}"
 }
 
 # ------------------------------
@@ -64,4 +64,15 @@ module "rds" {
   db_pass = var.db_pass
   db_user = var.db_user
   db_subnet_ids = ""
+# ------------------------------
+# EC2 - kOps Admin
+# ------------------------------
+module "kops_admin" {
+  source        = "./modules/ec2-kops-admin"
+  prefix        = var.prefix
+  vpc_id        = module.vpc.vpc_info.vpc_id
+  subnet_id     = module.vpc.vpc_info.public_subnet_ids[0]
+  instance_type = var.instance_type
+  key_name      = var.key_name
+  allowed_cidrs = var.allowed_cidrs
 }
