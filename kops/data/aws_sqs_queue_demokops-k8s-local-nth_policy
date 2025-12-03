@@ -1,0 +1,16 @@
+{
+  "Statement": [
+    {
+      "Action": "sqs:SendMessage",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": [
+          "events.amazonaws.com",
+          "sqs.amazonaws.com"
+        ]
+      },
+      "Resource": "arn:aws:sqs:ap-southeast-1:703671893711:demokops-k8s-local-nth"
+    }
+  ],
+  "Version": "2012-10-17"
+}

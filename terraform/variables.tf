@@ -34,6 +34,7 @@ variable "db_user" {
 variable "db_pass" {
   type = string
   description = "database password"
+}
 variable "instance_type" {
   default = "t2.medium"
 }

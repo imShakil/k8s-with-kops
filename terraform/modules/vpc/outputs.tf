@@ -6,5 +6,7 @@ output "vpc_info" {
     public_subnet_ids = aws_subnet.public_subnets[*].id
     private_subnet_ids = aws_subnet.private_subnets[*].id
     availability_zones = data.aws_availability_zones.azs.names
+    public_subnet_tags = aws_subnet.public_subnets[*].tags
+    private_subnet_tags = aws_subnet.private_subnets[*].tags
   }
 }
