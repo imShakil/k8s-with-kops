@@ -1,0 +1,155 @@
+#!/bin/bash
+set -o errexit
+set -o nounset
+set -o pipefail
+
+NODEUP_URL_AMD64=https://artifacts.k8s.io/binaries/kops/1.34.1/linux/amd64/nodeup,https://github.com/kubernetes/kops/releases/download/v1.34.1/nodeup-linux-amd64
+NODEUP_HASH_AMD64=614bdf819824743e81880cdcb91200cb3e22f9d0c3fe5c8b2ac0e22724d737fc
+NODEUP_URL_ARM64=https://artifacts.k8s.io/binaries/kops/1.34.1/linux/arm64/nodeup,https://github.com/kubernetes/kops/releases/download/v1.34.1/nodeup-linux-arm64
+NODEUP_HASH_ARM64=7f1f8ae16718feee6c30e6621a39dfbd90d5bac44ca9e038c7d448b7f1e7405b
+
+export AWS_REGION=ap-southeast-1
+
+
+
+
+sysctl -w net.core.rmem_max=16777216 || true
+sysctl -w net.core.wmem_max=16777216 || true
+sysctl -w net.ipv4.tcp_rmem='4096 87380 16777216' || true
+sysctl -w net.ipv4.tcp_wmem='4096 87380 16777216' || true
+
+
+function ensure-install-dir() {
+  INSTALL_DIR="/opt/kops"
+  # On ContainerOS, we install under /var/lib/toolbox; /opt is ro and noexec
+  if [[ -d /var/lib/toolbox ]]; then
+    INSTALL_DIR="/var/lib/toolbox/kops"
+  fi
+  mkdir -p ${INSTALL_DIR}/bin
+  mkdir -p ${INSTALL_DIR}/conf
+  cd ${INSTALL_DIR}
+}
+
+# Retry a download until we get it. args: name, sha, urls
+download-or-bust() {
+  echo "== Downloading $1 with hash $2 from $3 =="
+  local -r file="$1"
+  local -r hash="$2"
+  local -a urls
+  IFS=, read -r -a urls <<< "$3"
+
+  if [[ -f "${file}" ]]; then
+    if ! validate-hash "${file}" "${hash}"; then
+      rm -f "${file}"
+    else
+      return 0
+    fi
+  fi
+
+  while true; do
+    for url in "${urls[@]}"; do
+      commands=(
+        "curl -f --compressed -Lo ${file} --connect-timeout 20 --retry 6 --retry-delay 10"
+        "wget --compression=auto -O ${file} --connect-timeout=20 --tries=6 --wait=10"
+        "curl -f -Lo ${file} --connect-timeout 20 --retry 6 --retry-delay 10"
+        "wget -O ${file} --connect-timeout=20 --tries=6 --wait=10"
+      )
+      for cmd in "${commands[@]}"; do
+        echo "== Downloading ${url} using ${cmd} =="
+        if ! (${cmd} "${url}"); then
+          echo "== Failed to download ${url} using ${cmd} =="
+          continue
+        fi
+        if ! validate-hash "${file}" "${hash}"; then
+          echo "== Failed to validate hash for ${url} =="
+          rm -f "${file}"
+        else
+          echo "== Downloaded ${url} with hash ${hash} =="
+          return 0
+        fi
+      done
+    done
+
+    echo "== All downloads failed; sleeping before retrying =="
+    sleep 60
+  done
+}
+
+validate-hash() {
+  local -r file="$1"
+  local -r expected="$2"
+  local actual
+
+  actual=$(sha256sum "${file}" | awk '{ print $1 }') || true
+  if [[ "${actual}" != "${expected}" ]]; then
+    echo "== File ${file} is corrupted; hash ${actual} doesn't match expected ${expected} =="
+    return 1
+  fi
+}
+
+function download-release() {
+  case "$(uname -m)" in
+  x86_64*|i?86_64*|amd64*)
+    NODEUP_URL="${NODEUP_URL_AMD64}"
+    NODEUP_HASH="${NODEUP_HASH_AMD64}"
+    ;;
+  aarch64*|arm64*)
+    NODEUP_URL="${NODEUP_URL_ARM64}"
+    NODEUP_HASH="${NODEUP_HASH_ARM64}"
+    ;;
+  *)
+    echo "Unsupported host arch: $(uname -m)" >&2
+    exit 1
+    ;;
+  esac
+
+  cd ${INSTALL_DIR}/bin
+  download-or-bust nodeup "${NODEUP_HASH}" "${NODEUP_URL}"
+
+  chmod +x nodeup
+
+  echo "== Running nodeup =="
+  # We can't run in the foreground because of https://github.com/docker/docker/issues/23793
+  ( cd ${INSTALL_DIR}/bin; ./nodeup --install-systemd-unit --conf=${INSTALL_DIR}/conf/kube_env.yaml --v=8  )
+}
+
+####################################################################################
+
+/bin/systemd-machine-id-setup || echo "== Failed to initialize the machine ID; ensure machine-id configured =="
+
+echo "== nodeup node config starting =="
+ensure-install-dir
+
+cat > conf/kube_env.yaml << '__EOF_KUBE_ENV'
+CloudProvider: aws
+ClusterName: awslab.mhosen.com
+ConfigServer:
+  CACertificates: |
+    -----BEGIN CERTIFICATE-----
+    MIIC+DCCAeCgAwIBAgIMGH4KblLIbADBQrvgMA0GCSqGSIb3DQEBCwUAMBgxFjAU
+    BgNVBAMTDWt1YmVybmV0ZXMtY2EwHhcNMjUxMjAyMTQ0NjEyWhcNMzUxMjAyMTQ0
+    NjEyWjAYMRYwFAYDVQQDEw1rdWJlcm5ldGVzLWNhMIIBIjANBgkqhkiG9w0BAQEF
+    AAOCAQ8AMIIBCgKCAQEAq7E5RdI3tR9IyColpNbeIAYojJW/6Nc6a3Zms3EVCKAf
+    FzLle6x+RYDhALsh1IlQkrMFGsiIsGb89PY3gCFpWG+YscJ/6K+l++wmambNK8Od
+    ga996rIOxd7v1rt97H7HIP1TrMYRSbcMvZLJL7Oglh1WMi0EpOuwi/+rTilTIJ2T
+    sFJ4LYs9UHdxu2PZUx1SqB+nVQ5xM/xbPSPeH7iHkzxLxjZaW94o1pBSaM9a+8P5
+    +h0xi3cE3kNT/1EY8GYXIC/DA6MZp8c+SetoaSm7h2MJnrmf5JNUHombE5VgFk3b
+    0giYZ/adX9X4W38nbTmZwyXABRtPhOyhW46AqbyevwIDAQABo0IwQDAOBgNVHQ8B
+    Af8EBAMCAQYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQU6ETcr+wCIxYz9jwa
+    ubvZ/Q5ehhIwDQYJKoZIhvcNAQELBQADggEBAEuQI+TFNCtRMR+MjJzn4siW6mQv
+    EDU1Q69AN5d12m5NRsUkAFuVvXLclIMg4piwiCRP6OaMC25ipkFSQEgyrj7EYVY/
+    CKnTrSbQ2MJGTq6i3AjX7PS2mBCQys0vIu31A497GLPxOHNNBTNr9w/53LdE4CV+
+    m78ofdIjGkU7rWFXOINBCb26DjM4LvjRUM4ziZBMdcVSzycXzaG361c1BJq4x+B9
+    Tmx50y2QiIkjBH7LBGHxlRZQ/OOp8mQM0semeLB63BXmvAqL52aVNmxZpcP3qwuD
+    sJ53MweDmg8x5vMNc8Tczi/jEE3qvTUVLJZNF+CKc9ZZJBINM5T4KJTxe4Y=
+    -----END CERTIFICATE-----
+  servers:
+  - https://kops-controller.internal.awslab.mhosen.com:3988/
+InstanceGroupName: nodes-ap-southeast-1b
+InstanceGroupRole: Node
+NodeupConfigHash: wNsjgc2RRz47IgP1b3Nml6P0kQ2DjlSdtm1oD1GRyjo=
+
+__EOF_KUBE_ENV
+
+download-release
+echo "== nodeup node config done =="
