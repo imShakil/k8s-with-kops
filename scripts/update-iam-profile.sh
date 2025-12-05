@@ -51,9 +51,6 @@ aws configure --profile $AWS_PROFILE set region "$AWS_REGION" 2>&1 | tee -a "$LO
 
 export AWS_PROFILE="$AWS_PROFILE"
 
-# Make profile persistent in current shell session
-echo "export AWS_PROFILE=$AWS_PROFILE" >> ~/.bashrc
-
 log "AWS CLI profile configured successfully: $AWS_PROFILE"
 log "Profile exported and made persistent for future sessions"
 log "IAM profile update completed. Log file: $LOG_FILE"

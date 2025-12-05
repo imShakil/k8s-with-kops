@@ -90,6 +90,7 @@ log "S3 state store cleanup completed"
 # Destroy kops-init infrastructure
 if [ -d "$PROJECT_DIR/kops-init" ]; then
     log "Destroying kops-init infrastructure..."
+    export AWS_PROFILE=default
     cd $PROJECT_DIR/kops-init
     terraform init -input=false 2>&1 | tee -a "$LOG_FILE"
     if ! terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE"; then
