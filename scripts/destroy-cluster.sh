@@ -61,23 +61,43 @@ fi
 
 # Clean S3 state store completely
 log "Cleaning S3 state store..."
-aws s3 rm "$KOPS_STATE_STORE" --recursive 2>/dev/null || true
-aws s3api list-object-versions --bucket "$KOPS_STATE_STORE" --query 'Versions[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null | while read key version; do
-    [ -n "$key" ] && aws s3api delete-object --bucket "$KOPS_STATE_STORE" --key "$key" --version-id "$version" 2>/dev/null || true
-done
-aws s3api list-object-versions --bucket "$KOPS_STATE_STORE" --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null | while read key version; do
-    [ -n "$key" ] && aws s3api delete-object --bucket "$KOPS_STATE_STORE" --key "$key" --version-id "$version" 2>/dev/null || true
-done
-log "S3 state store cleaned"
+set +e  # Disable exit on error for S3 cleanup
+
+# Extract bucket name from s3:// URL
+BUCKET_NAME=$(echo "$KOPS_STATE_STORE" | sed 's|s3://||')
+
+aws s3 rm "$KOPS_STATE_STORE" --recursive 2>/dev/null || log "WARNING: S3 recursive delete failed"
+
+# Clean object versions
+versions=$(aws s3api list-object-versions --bucket "$BUCKET_NAME" --query 'Versions[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null || true)
+if [ -n "$versions" ]; then
+    echo "$versions" | while read key version; do
+        [ -n "$key" ] && aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null || true
+    done
+fi
+
+# Clean delete markers
+markers=$(aws s3api list-object-versions --bucket "$BUCKET_NAME" --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null || true)
+if [ -n "$markers" ]; then
+    echo "$markers" | while read key version; do
+        [ -n "$key" ] && aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null || true
+    done
+fi
+
+set -e  # Re-enable exit on error
+log "S3 state store cleanup completed"
 
 # Destroy kops-init infrastructure
 if [ -d "$PROJECT_DIR/kops-init" ]; then
     log "Destroying kops-init infrastructure..."
     cd $PROJECT_DIR/kops-init
     terraform init -input=false 2>&1 | tee -a "$LOG_FILE"
-    terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE" || log "WARNING: Init infrastructure destroy failed"
+    if ! terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE"; then
+        log "ERROR: Infrastructure destroy failed - exiting"
+        exit 1
+    fi
     cd - > /dev/null
-    log "Init infrastructure destroyed"
+    log "Infrastructure destroyed"
 fi
 
 log "Cluster destruction completed"
