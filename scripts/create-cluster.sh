@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Setup logging
 LOG_DIR="$HOME/kops"
-LOG_FILE="$LOG_DIR/create-cluster-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="$LOG_DIR/create-cluster.log"
 mkdir -p "$LOG_DIR"
 
 # Logging function
