@@ -2,37 +2,49 @@
 
 set -euo pipefail
 
-# Error handling function
-error_exit() {
-    echo "ERROR: $1" >&2
+# Get parameters
+CLUSTER_NAME="${1:-${CLUSTER_NAME:-}}"
+KOPS_STATE_STORE="${2:-${KOPS_STATE_STORE:-}}"
+
+# Validate parameters
+if [ -z "$CLUSTER_NAME" ] || [ -z "$KOPS_STATE_STORE" ]; then
+    echo "Usage: $0 <cluster-name> <state-store>"
+    echo "  or set CLUSTER_NAME and KOPS_STATE_STORE env vars"
+    echo "Example: $0 my-cluster.k8s.local my-kops-state"
     exit 1
-}
-
-CLUSTER_NAME="${CLUSTER_NAME:-}"
-KOPS_STATE_STORE="${KOPS_STATE_STORE:-}"
-
-# Validate required parameters
-[ -z "$CLUSTER_NAME" ] && error_exit "Cluster name is required as first parameter"
-[ -z "$KOPS_STATE_STORE" ] && error_exit "Kops state store is required as second parameter"
-
-echo "This script will destroy the cluster and all resources associated with it."
-
-echo "Destroying cluster infrastructure..."
-cd ../kops-infra || error_exit "Failed to change to kops-infra directory"
-
-# Initialize and destroy with Terraform
-terraform init || error_exit "Terraform init failed"
-if ! terraform destroy -auto-approve; then
-    error_exit "Terraform destroy failed - S3 bucket will NOT be deleted for safety"
 fi
 
+echo "Destroying cluster: $CLUSTER_NAME"
+echo "State store: s3://$KOPS_STATE_STORE"
+
+# Confirm destruction
+read -p "Are you sure you want to destroy this cluster? (yes/no): " confirm
+[ "$confirm" != "yes" ] && { echo "Aborted"; exit 0; }
+
+# Delete kops cluster first
 echo "Deleting kops cluster..."
-if ! kops delete cluster --name="${CLUSTER_NAME}" --state="s3://${KOPS_STATE_STORE}" --yes --admin; then
-   error_exit "Failed to delete kops cluster"
+kops delete cluster --name="$CLUSTER_NAME" --state="s3://$KOPS_STATE_STORE" --yes || echo "WARNING: Cluster deletion failed"
+
+# Destroy kops infrastructure
+if [ -d "../kops-infra" ]; then
+    echo "Destroying kops infrastructure..."
+    cd ../kops-infra
+    terraform init -input=false
+    terraform destroy -auto-approve || echo "WARNING: Infrastructure destroy failed"
+    cd - > /dev/null
 fi
 
-echo "Cleaning up S3 state store..."
-aws s3 rm "s3://$KOPS_STATE_STORE" --recursive || echo "WARNING: Failed to empty S3 bucket"
-aws s3 rb "s3://$KOPS_STATE_STORE" || echo "WARNING: Failed to delete S3 bucket"
+# Clean S3 state store
+echo "Cleaning S3 state store..."
+aws s3 rm "s3://$KOPS_STATE_STORE" --recursive 2>/dev/null || echo "WARNING: S3 cleanup failed"
 
-echo "Cluster destruction completed."
+# Destroy kops-init infrastructure
+if [ -d "../kops-init" ]; then
+    echo "Destroying kops-init infrastructure..."
+    cd ../kops-init
+    terraform init -input=false
+    terraform destroy -auto-approve || echo "WARNING: Init infrastructure destroy failed"
+    cd - > /dev/null
+fi
+
+echo "Cluster destruction completed"

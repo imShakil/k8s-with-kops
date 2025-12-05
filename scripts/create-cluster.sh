@@ -9,7 +9,7 @@ error_exit() {
 }
 
 # Use environment variables with defaults
-CLUSTER_NAME="${CLUSTER_NAME:-}"
+CLUSTER_NAME="${CLUSTER_NAME:-demo.k8s.local}"
 STATE_STORE="${KOPS_STATE_STORE:-}"
 ZONES="${KOPS_ZONES:-}"
 NODE_COUNT="${NODE_COUNT:-2}"
@@ -17,6 +17,7 @@ NODE_SIZE="${NODE_SIZE:-t3.micro}"
 MASTER_SIZE="${MASTER_SIZE:-t3.medium}"
 KOPS_DIR="../kops-infra"
 SSH_KEY_PATH="$HOME/.ssh/id_rsa"
+TOPOLOGY="${TOPOLOGY:-public}"
 
 # Validate required environment variables
 [ -z "$CLUSTER_NAME" ] && error_exit "CLUSTER_NAME environment variable is required"
@@ -43,13 +44,13 @@ else
     echo "Using existing SSH key at $SSH_KEY_PATH"
 fi
 
-# Detect topology automatically
+# Detect DNS mode
 if [[ "$CLUSTER_NAME" == *.k8s.local ]]; then
-    TOPOLOGY="private"
-    DNS_ZONE="none"
+    # Gossip cluster
+    DNS_MODE="none"
 else
-    TOPOLOGY="public"
-    DNS_ZONE="$CLUSTER_NAME"
+    # Real domain requires Route53 zone
+    DNS_MODE="public"
 fi
 
 echo "Detected topology: $TOPOLOGY"
@@ -65,7 +66,8 @@ if ! kops get cluster --name="$CLUSTER_NAME" --state="$STATE_STORE" >/dev/null 2
             --name="$CLUSTER_NAME" \
             --state="$STATE_STORE" \
             --zones="$ZONES" \
-            --topology=private \
+            --topology="$TOPOLOGY" \
+            --dns="$DNS_MODE" \
             --node-count="$NODE_COUNT" \
             --node-size="$NODE_SIZE" \
             --control-plane-size="$MASTER_SIZE" \
@@ -76,8 +78,9 @@ if ! kops get cluster --name="$CLUSTER_NAME" --state="$STATE_STORE" >/dev/null 2
             --name="$CLUSTER_NAME" \
             --state="$STATE_STORE" \
             --zones="$ZONES" \
+            --dns="$DNS_MODE" \
             --dns-zone="$DNS_ZONE" \
-            --topology=public \
+            --topology="$TOPOLOGY" \
             --node-count="$NODE_COUNT" \
             --node-size="$NODE_SIZE" \
             --control-plane-size="$MASTER_SIZE" \

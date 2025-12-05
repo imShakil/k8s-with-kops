@@ -22,7 +22,7 @@ module "iam" {
 # ------------------------------
 module "kops_state_store" {
   source      = "../tf-modules/s3"
-  bucket_name = "${var.prefix}-kops-state-${var.env}-${var.region}"
+  bucket_name = "${var.prefix}-state-${var.env}-${var.region}"
 
   tags = {
     Environment = var.env
