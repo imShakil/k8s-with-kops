@@ -111,7 +111,7 @@ install_terraform() {
 }
 
 # Main execution
-log "Installing tools for Kubernetes cluster setup...
+log "Installing tools for Kubernetes cluster setup..."
 log "Detected platform: $(detect_platform)"
 
 install_jq
