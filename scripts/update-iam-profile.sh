@@ -4,7 +4,7 @@ set -e
 
 # Setup logging
 LOG_DIR="$HOME/kops"
-LOG_FILE="$LOG_DIR/update-iam-profile-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="$LOG_DIR/update-iam-profile.log"
 mkdir -p "$LOG_DIR"
 
 # Logging function
@@ -50,9 +50,6 @@ aws configure --profile $AWS_PROFILE set region "$AWS_REGION" 2>&1 | tee -a "$LO
 # aws configure set region "$AWS_REGION" 2>&1 | tee -a "$LOG_FILE"
 
 export AWS_PROFILE="$AWS_PROFILE"
-
-# Make profile persistent in current shell session
-echo "export AWS_PROFILE=$AWS_PROFILE" >> ~/.bashrc
 
 log "AWS CLI profile configured successfully: $AWS_PROFILE"
 log "Profile exported and made persistent for future sessions"
