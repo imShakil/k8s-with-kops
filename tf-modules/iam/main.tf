@@ -10,16 +10,6 @@ data "aws_iam_policy_document" "kops_admin_policy" {
   }
 
   statement {
-    sid    = "VPCFullAccess"
-    effect = "Allow"
-    actions = [
-      "ec2:*",
-      "directconnect:*"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
     sid    = "Route53FullAccess"
     effect = "Allow"
     actions = [
@@ -65,10 +55,11 @@ data "aws_iam_policy_document" "kops_admin_policy" {
   }
 
   statement {
-    sid    = "RDSFullAccess"
+    sid    = "VPCFullAccess"
     effect = "Allow"
     actions = [
-      "rds:*"
+      "ec2:*",
+      "directconnect:*"
     ]
     resources = ["*"]
   }
@@ -87,34 +78,6 @@ data "aws_iam_policy_document" "kops_admin_policy" {
     effect = "Allow"
     actions = [
       "autoscaling:*"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "EBSFullAccess"
-    effect = "Allow"
-    actions = [
-      "ebs:*"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "CloudWatchFullAccess"
-    effect = "Allow"
-    actions = [
-      "cloudwatch:*",
-      "logs:*"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "ECRFullAccess"
-    effect = "Allow"
-    actions = [
-      "ecr:*"
     ]
     resources = ["*"]
   }
