@@ -53,6 +53,7 @@ if [ -d "$PROJECT_DIR/kops-infra" ]; then
     terraform init -input=false 2>&1 | tee -a "$LOG_FILE"
     terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE" || log "WARNING: Infrastructure destroy failed"
     cd - > /dev/null
+    log "Infrastructure destroyed"
 fi
 
 # Clean S3 state store completely
@@ -64,6 +65,7 @@ done
 aws s3api list-object-versions --bucket "$KOPS_STATE_STORE" --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null | while read key version; do
     [ -n "$key" ] && aws s3api delete-object --bucket "$KOPS_STATE_STORE" --key "$key" --version-id "$version" 2>/dev/null || true
 done
+log "S3 state store cleaned"
 
 # Destroy kops-init infrastructure
 if [ -d "$PROJECT_DIR/kops-init" ]; then
@@ -72,6 +74,7 @@ if [ -d "$PROJECT_DIR/kops-init" ]; then
     terraform init -input=false 2>&1 | tee -a "$LOG_FILE"
     terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE" || log "WARNING: Init infrastructure destroy failed"
     cd - > /dev/null
+    log "Init infrastructure destroyed"
 fi
 
 log "Cluster destruction completed"
