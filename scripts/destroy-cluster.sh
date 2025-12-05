@@ -50,8 +50,11 @@ kops delete cluster --name="$KOPS_CLUSTER_NAME" --state="$KOPS_STATE_STORE" --ye
 if [ -d "$PROJECT_DIR/kops-infra" ]; then
     log "Destroying kops infrastructure..."
     cd $PROJECT_DIR/kops-infra
-    terraform init -input=false 2>&1 | tee -a "$LOG_FILE"
-    terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE" || log "WARNING: Infrastructure destroy failed"
+    terraform init -input=false -backend-config=backend.hcl 2>&1 | tee -a "$LOG_FILE"
+    if ! terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE"; then
+        log "ERROR: Infrastructure destroy failed - exiting"
+        exit 1
+    fi
     cd - > /dev/null
     log "Infrastructure destroyed"
 fi
