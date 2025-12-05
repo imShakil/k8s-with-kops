@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Setup logging
 LOG_DIR="$HOME/kops"
-LOG_FILE="$LOG_DIR/create-cluster-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="$LOG_DIR/create-cluster.log"
 mkdir -p "$LOG_DIR"
 
 # Logging function
@@ -26,6 +26,7 @@ STATE_STORE="${KOPS_STATE_STORE:-}"
 ZONES="${KOPS_ZONES:-}"
 NODE_COUNT="${NODE_COUNT:-2}"
 NODE_SIZE="${NODE_SIZE:-t3.small}"
+MASTER_COUNT="${MASTER_COUNT:-1}"
 MASTER_SIZE="${MASTER_SIZE:-t3.medium}"
 KOPS_DIR="../kops-infra"
 SSH_KEY_PATH="$HOME/.ssh/id_rsa"
@@ -75,12 +76,11 @@ fi
 log "Detecting cluster configuration..."
 if [[ "$CLUSTER_NAME" == *.k8s.local ]]; then
     DNS_MODE="none"
-    TOPOLOGY="${TOPOLOGY:-private}"
 else
     DNS_MODE="public"
-    TOPOLOGY="${TOPOLOGY:-public}"
 fi
 
+TOPOLOGY="${TOPOLOGY:-public}"
 log "Detected topology: $TOPOLOGY"
 log "Using DNS mode: $DNS_MODE"
 log "Cluster name: $CLUSTER_NAME"
@@ -96,16 +96,14 @@ if ! kops get cluster --name="$CLUSTER_NAME" --state="$STATE_STORE" >/dev/null 2
         --state="$STATE_STORE"
         --zones="$ZONES"
         --topology="$TOPOLOGY"
-        --dns="$DNS_MODE"
         --node-count="$NODE_COUNT"
         --node-size="$NODE_SIZE"
+        --control-plane-count="$MASTER_COUNT"
         --control-plane-size="$MASTER_SIZE"
-        --kubernetes-version=1.28.2
         --networking=calico
+        --dns-zone="$CLUSTER_NAME"
         --ssh-public-key="$SSH_KEY_PATH.pub"
     )
-    
-    [ "$DNS_MODE" = "public" ] && kops_args+=(--dns-zone="$CLUSTER_NAME")
     
     log "Running: kops create cluster ${kops_args[*]}"
     kops create cluster "${kops_args[@]}" 2>&1 | tee -a "$LOG_FILE" || error_exit "Failed to create cluster"

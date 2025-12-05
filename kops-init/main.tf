@@ -56,7 +56,7 @@ resource "null_resource" "update_iam_profile" {
       AWS_ACCESS_KEY_ID     = module.iam.kops_admin_credentials.access_key_id
       AWS_SECRET_ACCESS_KEY = module.iam.kops_admin_credentials.access_key_secret
       AWS_REGION            = var.region
-      KOPS_USER_NAME        = module.iam.kops_admin_credentials.user_name
+      KOPS_USER_NAME        = module.iam.kops_admin_user_info.user_name
     }
   }
 
