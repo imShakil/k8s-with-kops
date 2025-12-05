@@ -1,39 +1,44 @@
 terraform:
   - changed-files:
     - any-glob-to-any-file:
-      - 'terraform/**/*.tf'
-      - 'terraform/**/*.tfvars'
+      - 'kops-init/**/*.tf'
+      - 'kops-infra/**/*.tf'
+      - 'tf-modules/**/*.tf'
+      - '**/*.tfvars'
 
 kubernetes:
   - changed-files:
     - any-glob-to-any-file:
-      - 'kops/**/*.yaml'
-      - 'kops/**/*.yml'
+      - 'kops-init/**'
+      - 'kops-infra/**'
+      - 'scripts/create-cluster.sh'
+      - 'scripts/destroy-cluster.sh'
 
 vpc:
   - changed-files:
     - any-glob-to-any-file:
-      - 'terraform/modules/vpc/**'
+      - 'tf-modules/vpc/**'
 
 iam:
   - changed-files:
     - any-glob-to-any-file:
-      - 'terraform/modules/iam/**'
+      - 'tf-modules/iam/**'
+      - 'scripts/update-iam-profile.sh'
 
 ec2:
   - changed-files:
     - any-glob-to-any-file:
-      - 'terraform/modules/ec2/**'
+      - 'tf-modules/ec2/**'
 
 ecr:
   - changed-files:
     - any-glob-to-any-file:
-      - 'terraform/modules/ecr/**'
+      - 'tf-modules/ecr/**'
 
 rds:
   - changed-files:
     - any-glob-to-any-file:
-      - 'terraform/modules/rds/**'
+      - 'tf-modules/rds/**'
 
 documentation:
   - changed-files:
