@@ -100,7 +100,6 @@ if ! kops get cluster --name="$CLUSTER_NAME" --state="$STATE_STORE" >/dev/null 2
         --node-count="$NODE_COUNT"
         --node-size="$NODE_SIZE"
         --control-plane-size="$MASTER_SIZE"
-        --kubernetes-version=1.28.2
         --networking=calico
         --ssh-public-key="$SSH_KEY_PATH.pub"
     )
