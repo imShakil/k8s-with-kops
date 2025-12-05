@@ -1,8 +1,8 @@
 terraform {
   backend "s3" {
-    # change bucket name
-    bucket = "imshakil-bkt-tfstate"
-    key    = "infra/kops-terraform.tfstate"
-    region = "ap-southeast-1"
+    # Configure via backend config file or CLI
+    # bucket = "your-tfstate-bucket"
+    # key    = "infra/kops-terraform.tfstate"
+    # region = "your-region"
   }
 }

@@ -33,18 +33,6 @@ module "kops_state_store" {
 }
 
 # ------------------------------
-# Setup kops backend configuration
-# ------------------------------
-resource "local_file" "kops_backend" {
-  depends_on = [module.kops_state_store]
-  filename   = "../kops-infra/backend.tf"
-  content = templatefile("${path.module}/templates/backend.tf.tpl", {
-    bucket_name = module.kops_state_store.bucket_name
-    region      = var.region
-  })
-}
-
-# ------------------------------
 # Add IAM profile to aws config
 # ------------------------------
 resource "null_resource" "update_iam_profile" {

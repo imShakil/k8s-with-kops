@@ -4,6 +4,7 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*
+**/backend.hcl
 
 # Crash log files
 crash.log
@@ -37,3 +38,6 @@ override.tf.json
 terraform.rc
 **/.DS_Store
 **/.terraform.lock.hcl
+**/kubernetes.tf
+**/data/
+

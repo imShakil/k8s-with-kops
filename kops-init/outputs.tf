@@ -1,9 +1,11 @@
-output "kops_cluster_info" {
-  value = {
-    name        = var.cluster_name
-    s3_bucket   = "s3://${module.kops_state_store.bucket_name}"
-    kops_zones  = local.kops_zones
-    iam_profile = module.iam.kops_admin_credentials.user_name
-  }
-  sensitive = true
+output "kops_state_bucket" {
+  value = module.kops_state_store.bucket_name
+}
+
+output "region" {
+  value = var.region
+}
+
+output "kops_backend_config" {
+  value = "Run: cd ../kops-infra && terraform init -backend-config='bucket=${module.kops_state_store.bucket_name}' -backend-config='key=infra/kops-terraform.tfstate' -backend-config='region=${var.region}'"
 }
