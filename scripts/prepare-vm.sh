@@ -41,7 +41,7 @@ detect_platform() {
         *) log "ERROR: Unsupported architecture: $arch"; exit 1 ;;
     esac
     
-    echo "${os}-${arch}"
+    echo "${os}/${arch}"
 }
 
 # Install jq
