@@ -22,25 +22,16 @@ jobs:
             const title = context.payload.pull_request.title.toLowerCase();
             const labels = [];
 
-            if (title.includes('fix') || title.includes('bug')) {
+            // Primary type labels (mutually exclusive)
+            if (title.startsWith('fix:') || title.startsWith('bug:')) {
               labels.push('bug');
-            }
-            if (title.includes('feat') || title.includes('feature')) {
+            } else if (title.startsWith('feat:') || title.startsWith('feature:')) {
               labels.push('enhancement');
-            }
-            if (title.includes('docs')) {
+            } else if (title.startsWith('docs:')) {
               labels.push('documentation');
-            }
-            if (title.includes('terraform') || title.includes('tf')) {
-              labels.push('terraform');
-            }
-            if (title.includes('k8s') || title.includes('kubernetes')) {
-              labels.push('kubernetes');
-            }
-            if (title.includes('chore')) {
+            } else if (title.startsWith('chore:')) {
               labels.push('chore');
-            }
-            if (title.includes('refactor')) {
+            } else if (title.startsWith('refactor:')) {
               labels.push('refactor');
             }
 
