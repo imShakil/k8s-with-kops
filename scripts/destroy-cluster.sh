@@ -15,19 +15,19 @@ log() {
 log "Starting cluster destruction script"
 
 # Get parameters
-CLUSTER_NAME="${1:-${CLUSTER_NAME:-}}"
+KOPS_CLUSTER_NAME="${1:-${KOPS_CLUSTER_NAME:-}}"
 KOPS_STATE_STORE="${2:-${KOPS_STATE_STORE:-}}"
 
 # Validate parameters
-if [ -z "$CLUSTER_NAME" ] || [ -z "$KOPS_STATE_STORE" ]; then
+if [ -z "$KOPS_CLUSTER_NAME" ] || [ -z "$KOPS_STATE_STORE" ]; then
     log "ERROR: Missing required parameters"
     echo "Usage: $0 <cluster-name> <state-store>"
-    echo "  or set CLUSTER_NAME and KOPS_STATE_STORE env vars"
+    echo "  or set KOPS_CLUSTER_NAME and KOPS_STATE_STORE env vars"
     echo "Example: $0 my-cluster.k8s.local my-kops-state"
     exit 1
 fi
 
-log "Destroying cluster: $CLUSTER_NAME"
+log "Destroying cluster: $KOPS_CLUSTER_NAME"
 log "State store: s3://$KOPS_STATE_STORE"
 
 # Confirm destruction
@@ -36,7 +36,7 @@ read -p "Are you sure you want to destroy this cluster? (yes/no): " confirm
 
 # Delete kops cluster first
 log "Deleting kops cluster..."
-kops delete cluster --name="$CLUSTER_NAME" --state="s3://$KOPS_STATE_STORE" --yes 2>&1 | tee -a "$LOG_FILE" || log "WARNING: Cluster deletion failed"
+kops delete cluster --name="$KOPS_CLUSTER_NAME" --state="s3://$KOPS_STATE_STORE" --yes 2>&1 | tee -a "$LOG_FILE" || log "WARNING: Cluster deletion failed"
 
 # Destroy kops infrastructure
 if [ -d "../kops-infra" ]; then
