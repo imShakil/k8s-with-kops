@@ -8,5 +8,6 @@ output "kops_init" {
   }
 }
 output "kops_admin_credentials" {
-  value = module.iam.kops_admin_credentials
+  value     = module.iam.kops_admin_credentials
+  sensitive = true
 }
