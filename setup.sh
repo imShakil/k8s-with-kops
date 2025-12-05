@@ -12,4 +12,14 @@ echo "☸️  Initializing cluster..."
 cd ../kops-infra/
 ./init.sh
 
-echo "✅ Setup complete! Run 'terraform apply' in kops-infra/ to create cluster"
+# Step 3: Create cluster (with confirmation)
+echo ""
+read -p "🔥 Create K8s cluster now? This will incur AWS costs. (y/N): " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "🏗️  Creating cluster..."
+    terraform apply
+    echo "✅ Cluster created! Run 'kops validate cluster' to check status"
+else
+    echo "⏸️  Skipped cluster creation. Run 'terraform apply' in kops-infra/ when ready"
+fi

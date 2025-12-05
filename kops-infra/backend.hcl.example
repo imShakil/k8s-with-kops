@@ -1,3 +1,0 @@
-bucket = "your-kops-state-bucket"
-key    = "infra/kops-terraform.tfstate"
-region = "us-west-2"

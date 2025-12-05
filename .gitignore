@@ -40,4 +40,4 @@ terraform.rc
 **/.terraform.lock.hcl
 **/kubernetes.tf
 **/data/
-
+kops-init/backend.tf
