@@ -20,7 +20,6 @@ SSH_KEY_PATH="$HOME/.ssh/id_rsa"
 TOPOLOGY="${TOPOLOGY:-public}"
 
 # Validate required environment variables
-[ -z "$CLUSTER_NAME" ] && error_exit "CLUSTER_NAME environment variable is required"
 [ -z "$STATE_STORE" ] && error_exit "KOPS_STATE_STORE environment variable is required"
 [ -z "$ZONES" ] && error_exit "KOPS_ZONES environment variable is required"
 
@@ -46,47 +45,36 @@ fi
 
 # Detect DNS mode
 if [[ "$CLUSTER_NAME" == *.k8s.local ]]; then
-    # Gossip cluster
     DNS_MODE="none"
 else
-    # Real domain requires Route53 zone
     DNS_MODE="public"
 fi
 
 echo "Detected topology: $TOPOLOGY"
-echo "Using DNS zone: $DNS_ZONE"
+echo "Using DNS mode: $DNS_MODE"
+echo "Cluster name: $CLUSTER_NAME"
 
 echo "Creating cluster with kops: $CLUSTER_NAME"
 
 # Check if cluster exists
 if ! kops get cluster --name="$CLUSTER_NAME" --state="$STATE_STORE" >/dev/null 2>&1; then
     echo "Creating new cluster..."
-    if [ "$TOPOLOGY" = "private" ]; then
-        kops create cluster \
-            --name="$CLUSTER_NAME" \
-            --state="$STATE_STORE" \
-            --zones="$ZONES" \
-            --topology="$TOPOLOGY" \
-            --dns="$DNS_MODE" \
-            --node-count="$NODE_COUNT" \
-            --node-size="$NODE_SIZE" \
-            --control-plane-size="$MASTER_SIZE" \
-            --networking=calico \
-            --ssh-public-key="$SSH_KEY_PATH.pub"
-    else
-        kops create cluster \
-            --name="$CLUSTER_NAME" \
-            --state="$STATE_STORE" \
-            --zones="$ZONES" \
-            --dns="$DNS_MODE" \
-            --dns-zone="$DNS_ZONE" \
-            --topology="$TOPOLOGY" \
-            --node-count="$NODE_COUNT" \
-            --node-size="$NODE_SIZE" \
-            --control-plane-size="$MASTER_SIZE" \
-            --networking=calico \
-            --ssh-public-key="$SSH_KEY_PATH.pub"
-    fi
+    kops_args=(
+        --name="$CLUSTER_NAME"
+        --state="$STATE_STORE"
+        --zones="$ZONES"
+        --topology="$TOPOLOGY"
+        --dns="$DNS_MODE"
+        --node-count="$NODE_COUNT"
+        --node-size="$NODE_SIZE"
+        --control-plane-size="$MASTER_SIZE"
+        --networking=calico
+        --ssh-public-key="$SSH_KEY_PATH.pub"
+    )
+    
+    [ "$DNS_MODE" = "public" ] && kops_args+=(--dns-zone="$CLUSTER_NAME")
+    
+    kops create cluster "${kops_args[@]}" || error_exit "Failed to create cluster"
 else
     echo "Cluster already exists, skipping creation"
 fi
