@@ -140,27 +140,36 @@ kops_init = {
 }
 ```
 
-> Keep notes these value, we need to use them frequentlly.
+> Keep notes these value, we need to use them frequently.
 
 ### 2.4: Export Variables
 
 It's better to export them as environment variables:
 
-```bash
-export KOPS_CLUSTER_NAME=kopsdemo.k8s.local
-export KOPS_STATE_STORE=s3://kops-state-staging-ap-southeast-1
-export AWS_PROFILE=kops-staging-admin
+- Run the following command:
+
+```sh
+terraform output -raw export_variables
 ```
 
-> This will ensure kops will use this IAM User
+- Copy and paste the output to your terminal
+
+> This will ensure kops will use right IAM User
 
 ## Step 3: Provisoning kOps Cluster With Terraform
 
 ### 3.1: Provision Cluster
 
+- Go to kops-infra directory and initialize terraform
+
 ```bash
 cd ../kops-infra
-terraform init -backend-conifig=backend.hcl
+terraform init -backend-config=backend.hcl
+```
+
+- Plan and Apply
+
+```bash
 terraform plan
 terraform apply -auto-approve
 ```
@@ -215,7 +224,21 @@ terraform destroy -auto-approve
 kops delete cluster --name=your-cluster-name --state=s3://bucket-name --yes
 ```
 
+Or if you have exported the variables:
+
+```bash
+kops delete cluster --yes
+```
+
 ### 5.3: Delete kOps Init Infra
+
+- Setting AWS Profile
+
+```bash
+export AWS_PROFILE=default
+```
+
+- Delete kOps Init Infra
 
 ```bash
 cd ../kops-init
