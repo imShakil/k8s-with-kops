@@ -149,6 +149,7 @@ spec:
 ### Namespace Naming Convention
 
 Use format: `{team}-{feature}` or `{team}-{environment}`
+
 - Example: `platform-auth`, `backend-payment`
 
 ## 💻 Local Development
