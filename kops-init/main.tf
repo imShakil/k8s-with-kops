@@ -50,6 +50,10 @@ resource "local_file" "kops_backend" {
 resource "null_resource" "update_iam_profile" {
   depends_on = [module.iam]
 
+  triggers = {
+    always_run = timestamp()
+  }
+
   provisioner "local-exec" {
     command = "bash ../scripts/update-iam-profile.sh"
     environment = {
@@ -71,6 +75,10 @@ resource "null_resource" "update_iam_profile" {
 # ------------------------------
 resource "null_resource" "create_cluster" {
   depends_on = [module.kops_state_store, null_resource.update_iam_profile]
+
+  triggers = {
+    always_run = timestamp()
+  }
 
   provisioner "local-exec" {
     command = "bash ../scripts/create-cluster.sh"
