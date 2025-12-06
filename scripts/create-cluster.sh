@@ -82,8 +82,7 @@ if [[ "$CLUSTER_NAME" == *.k8s.local ]]; then
 else
     DNS_MODE="public"
     # Extract base domain from cluster name (e.g., demo.lab.mhosen.com -> lab.mhosen.com)
-    BASE_DOMAIN=$(echo "$CLUSTER_NAME" | awk -F. '{print $(NF-2)"."$(NF-1)"."$NF}')
-    DNS_ARGS="--dns-zone=$BASE_DOMAIN"
+    DNS_ARGS="--dns-zone=$CLUSTER_NAME"
 fi
 
 log "Detected DNS mode: $DNS_MODE"
