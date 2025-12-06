@@ -28,6 +28,7 @@ NODE_COUNT="${NODE_COUNT:-2}"
 NODE_SIZE="${NODE_SIZE:-t3.small}"
 MASTER_COUNT="${MASTER_COUNT:-1}"
 MASTER_SIZE="${MASTER_SIZE:-t3.medium}"
+TOPOLOGY="${TOPOLOGY:-public}"
 KOPS_DIR="../kops-infra"
 SSH_KEY_PATH="$HOME/.ssh/id_rsa"
 
@@ -38,6 +39,7 @@ log "  ZONES: $ZONES"
 log "  NODE_COUNT: $NODE_COUNT"
 log "  NODE_SIZE: $NODE_SIZE"
 log "  MASTER_SIZE: $MASTER_SIZE"
+log "  TOPOLOGY: $TOPOLOGY"
 
 # Validate required environment variables
 log "Validating environment variables..."
@@ -75,15 +77,17 @@ fi
 # Detect topology and DNS mode based on cluster name
 log "Detecting cluster configuration..."
 if [[ "$CLUSTER_NAME" == *.k8s.local ]]; then
-    DNS_MODE="none"
+    DNS_MODE="gossip"
+    DNS_ARGS="--dns=private"
 else
     DNS_MODE="public"
+    # Extract base domain from cluster name (e.g., demo.lab.mhosen.com -> lab.mhosen.com)
+    BASE_DOMAIN=$(echo "$CLUSTER_NAME" | awk -F. '{print $(NF-2)"."$(NF-1)"."$NF}')
+    DNS_ARGS="--dns-zone=$BASE_DOMAIN"
 fi
 
-TOPOLOGY="${TOPOLOGY:-public}"
-log "Detected topology: $TOPOLOGY"
-log "Using DNS mode: $DNS_MODE"
-log "Cluster name: $CLUSTER_NAME"
+log "Detected DNS mode: $DNS_MODE"
+log "DNS configuration: $DNS_ARGS"
 
 log "Creating cluster with kops: $CLUSTER_NAME"
 
@@ -101,9 +105,11 @@ if ! kops get cluster --name="$CLUSTER_NAME" --state="$STATE_STORE" >/dev/null 2
         --control-plane-count="$MASTER_COUNT"
         --control-plane-size="$MASTER_SIZE"
         --networking=calico
-        --dns-zone="$CLUSTER_NAME"
         --ssh-public-key="$SSH_KEY_PATH.pub"
     )
+    
+    # Add DNS arguments (word splitting intentional)
+    kops_args+=($DNS_ARGS)
     
     log "Running: kops create cluster ${kops_args[*]}"
     kops create cluster "${kops_args[@]}" 2>&1 | tee -a "$LOG_FILE" || error_exit "Failed to create cluster"
