@@ -12,37 +12,6 @@ kubernetes:
       - 'scripts/create-cluster.sh'
       - 'scripts/destroy-cluster.sh'
 
-vpc:
-  - changed-files:
-    - any-glob-to-any-file:
-      - 'tf-modules/vpc/*'
-
-iam:
-  - changed-files:
-    - any-glob-to-any-file:
-      - 'tf-modules/iam/*'
-      - 'scripts/update-iam-profile.sh'
-
-ec2:
-  - changed-files:
-    - any-glob-to-any-file:
-      - 'tf-modules/ec2/*'
-
-ecr:
-  - changed-files:
-    - any-glob-to-any-file:
-      - 'tf-modules/ecr/*'
-
-rds:
-  - changed-files:
-    - any-glob-to-any-file:
-      - 'tf-modules/rds/*'
-
-s3:
-  - changed-files:
-    - any-glob-to-any-file:
-      - 'tf-modules/s3/*'
-
 documentation:
   - changed-files:
     - any-glob-to-any-file:
@@ -52,7 +21,7 @@ documentation:
       - 'tf-modules/envs/README.md'
       - 'kops-init/README.md'
 
-ci:
+ci/cd:
   - changed-files:
     - any-glob-to-any-file:
       - '.github/**'
