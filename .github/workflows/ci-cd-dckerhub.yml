@@ -1,0 +1,90 @@
+name: CI-CD Pipeline for Kops + Terraform
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+env:
+  AWS_REGION: ap-south-1
+  TF_VERSION: 1.7.0
+
+jobs:
+
+  deploy:
+    name: Terraform + Kops Deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Disable Terraform Wrapper Cache
+        run: rm -f ~/.terraformrc || true
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: ./kops-init
+        run: |
+          terraform init 
+
+
+      - name: Terraform Validate
+        working-directory: ./kops-init
+        run: terraform validate
+
+  
+      - name: Terraform Plan
+        working-directory: ./kops-init
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ./kops-init
+        run: |
+          which terraform
+          terraform version
+          terraform apply -auto-approve tfplan
+
+    
+      - name: Extract Kops Cluster Output
+        working-directory: ./kops-init
+        run: |
+          echo "KOPS_CLUSTER_NAME=$(terraform output -raw cluster_name)" >> $GITHUB_ENV
+          echo "KOPS_STATE_STORE=$(terraform output -raw state_store)" >> $GITHUB_ENV
+
+      - name: Install kops & kubectl
+        run: |
+          # install kops
+          KOPS_VER=$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)
+          curl -Lo kops "https://github.com/kubernetes/kops/releases/download/${KOPS_VER}/kops-linux-amd64"
+          chmod +x ./kops
+          sudo mv ./kops /usr/local/bin/
+
+          # install kubectl
+          KUBECTL_VER=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+          curl -LO "https://dl.k8s.io/release/${KUBECTL_VER}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Deploy / Update Kops Cluster
+        run: |
+          kops update cluster "${KOPS_CLUSTER_NAME}" \
+            --state="${KOPS_STATE_STORE}" \
+            --yes
+            
+      - name: Update IAM profile if needed
+        working-directory: ./scripts
+        run: |
+          bash update-iam-profile.sh || echo "IAM update skipped"
