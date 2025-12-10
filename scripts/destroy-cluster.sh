@@ -2,10 +2,13 @@
 
 set -euo pipefail
 
+# Detect project directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
 # Setup logging
 LOG_DIR="$HOME/kops"
 LOG_FILE="$LOG_DIR/destroy-cluster.log"
-PROJECT_DIR="$HOME/k8s-with-kops"
 mkdir -p "$LOG_DIR"
 
 # Logging function
@@ -14,29 +17,35 @@ log() {
 }
 
 log "Starting cluster destruction script"
+log "Project directory: $PROJECT_DIR"
 
-# check if project directory exists
-if [ ! -d "$PROJECT_DIR" ]; then
-    log "ERROR: Project directory $PROJECT_DIR does not exist"
-    log "Make sure you have cloned the repository to $PROJECT_DIR"
+# Validate project structure
+if [ ! -d "$PROJECT_DIR/kops-init" ] && [ ! -d "$PROJECT_DIR/kops-infra" ]; then
+    log "ERROR: Invalid project directory structure"
+    log "Make sure you're running this script from within the k8s-with-kops project"
     exit 1
 fi
 
 # Get parameters
 KOPS_CLUSTER_NAME="${1:-${KOPS_CLUSTER_NAME:-}}"
 KOPS_STATE_STORE="${2:-${KOPS_STATE_STORE:-}}"
+AWS_PROFILE="${3:-${AWS_PROFILE:-}}"
 
 # Validate parameters
-if [ -z "$KOPS_CLUSTER_NAME" ] || [ -z "$KOPS_STATE_STORE" ]; then
+if [ -z "$KOPS_CLUSTER_NAME" ] || [ -z "$KOPS_STATE_STORE" ] || [ -z "$AWS_PROFILE" ]; then
     log "ERROR: Missing required parameters"
-    echo "Usage: $0 <cluster-name> <state-store>"
-    echo "  or set KOPS_CLUSTER_NAME and KOPS_STATE_STORE env vars"
-    echo "Example: $0 my-cluster.k8s.local my-kops-state"
+    echo "Usage: $0 <cluster-name> <state-store> <aws-profile>"
+    echo "  or set KOPS_CLUSTER_NAME, KOPS_STATE_STORE, and AWS_PROFILE env vars"
+    echo "Example: $0 my-cluster.k8s.local s3://my-kops-state kops-profile"
     exit 1
 fi
 
+# Set AWS profile
+export AWS_PROFILE="$AWS_PROFILE"
+
 log "Destroying cluster: $KOPS_CLUSTER_NAME"
 log "State store: $KOPS_STATE_STORE"
+log "AWS Profile: $AWS_PROFILE"
 
 # Confirm destruction
 read -p "Are you sure you want to destroy this cluster? (yes/no): " confirm
@@ -49,7 +58,7 @@ kops delete cluster --name="$KOPS_CLUSTER_NAME" --state="$KOPS_STATE_STORE" --ye
 # Destroy kops infrastructure
 if [ -d "$PROJECT_DIR/kops-infra" ]; then
     log "Destroying kops infrastructure..."
-    cd $PROJECT_DIR/kops-infra
+    cd "$PROJECT_DIR/kops-infra"
     terraform init -input=false -backend-config=backend.hcl 2>&1 | tee -a "$LOG_FILE"
     if ! terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE"; then
         log "ERROR: Infrastructure destroy failed - exiting"
@@ -91,7 +100,7 @@ log "S3 state store cleanup completed"
 if [ -d "$PROJECT_DIR/kops-init" ]; then
     log "Destroying kops-init infrastructure..."
     export AWS_PROFILE=default
-    cd $PROJECT_DIR/kops-init
+    cd "$PROJECT_DIR/kops-init"
     terraform init -input=false 2>&1 | tee -a "$LOG_FILE"
     if ! terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE"; then
         log "ERROR: Infrastructure destroy failed - exiting"

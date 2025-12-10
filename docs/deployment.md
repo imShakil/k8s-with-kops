@@ -81,11 +81,13 @@ aws configure
     cp terraform.tfvars.example terraform.tfvars
     ```
 
-- Copy `backend.tf.example` to `backend.tf` and update the values
+- If you want to use remote backend, Copy `backend.tf.example` to `backend.tf` and update the values
 
     ```sh
     cp backend.tf.example backend.tf
     ```
+
+    > If you want to use remote backend, you need to configure the backend first.
 
 - Initialize Terraform
 
@@ -93,9 +95,9 @@ aws configure
     terraform init
     ```
 
-### 2.2 Configure Variables
+### 2.2 Update Terraform Variables
 
-Create `terraform.tfvars`:
+Update the variables in `terraform.tfvars`:
 
 ```hcl
 env    = "dev"
@@ -108,10 +110,10 @@ kops_node_size   = "t2.small"
 kops_master_size = "t2.medium"
 ```
 
-> Use Fully Qualified Domain as Cluster Name
-> For local:
-    > - It could be like this: `demo.k8s.local`; make sure you have used `k8s.local` at the end
-    > - For public DNS: aws hosted zone; `awslab.example.com`
+- Use Fully Qualified Domain as Cluster Name
+- For local:
+  - It could be like this: `demo.k8s.local`; make sure you have used `k8s.local` at the end
+  - For public DNS: You have to use aws hosted zone; `awslab.example.com`
 
 ### 2.3 Plan and Apply Infrastructure
 
@@ -130,7 +132,7 @@ This creates:
 
 It will print the following output like this:
 
-```bash
+```hcl
 kops_admin_credentials = <sensitive>
 kops_init = {
   "cluster_name" = "kopsdemo.k8s.local"
@@ -209,7 +211,49 @@ kubectl get pods
 kubectl get ns
 ```
 
-## Destroy Cluster
+## Step 5: Destroy Cluster
+
+<details>
+
+<summary>Using Bash Script (Recommended)</summary>
+
+> You can destroy the cluster using the bash script `destroy-cluster.sh` in the `scripts` directory.
+
+**Usage:**
+
+```bash
+cd scripts
+./destroy-cluster.sh <cluster-name> <state-store> <aws-profile>
+```
+
+**Example:**
+
+```bash
+./destroy-cluster.sh my-cluster.k8s.local s3://my-kops-state kops-profile
+```
+
+**Or using environment variables:**
+
+```bash
+export KOPS_CLUSTER_NAME=my-cluster.k8s.local
+export KOPS_STATE_STORE=s3://my-kops-state
+export AWS_PROFILE=kops-profile
+bash ./destroy-cluster.sh
+```
+
+**What the script does:**
+
+1. Logs all operations to `~/kops/destroy-cluster.log`
+2. Deletes kops cluster resources
+3. Destroys kops-infra Terraform resources
+4. Cleans S3 state store completely (including versioned objects)
+5. Destroys kops-init Terraform resources
+
+</details>
+
+<details>
+
+<summary>Manual Destruction Steps</summary>
 
 ### 5.1: Delete kOps Infra
 
@@ -245,4 +289,6 @@ cd ../kops-init
 terraform destroy -auto-approve
 ```
 
-> KOPS state store S3 bucket will not be deleted, you need to delete it manually.
+> The destroy script will handle S3 bucket cleanup automatically, including versioned objects and delete markers.
+
+</details>
