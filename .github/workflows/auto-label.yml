@@ -62,7 +62,7 @@ jobs:
               labels.push('ci/cd');
             }
 
-            console.log(`PR Title: "${context.payload.pull_request.title}");
+            console.log(`PR Title: "${context.payload.pull_request.title}"`);  
             console.log(`Title-based labels to add: ${labels.length > 0 ? labels.join(', ') : 'none'}`);
 
             if (labels.length > 0) {
@@ -125,7 +125,7 @@ jobs:
               labels.push('ci/cd');
             }
 
-            console.log(`Issue Title: "${context.payload.issue.title}");
+            console.log(`Issue Title: "${context.payload.issue.title}"`);  
             console.log(`Title-based labels to add: ${labels.length > 0 ? labels.join(', ') : 'none'}`);
 
             if (labels.length > 0) {
