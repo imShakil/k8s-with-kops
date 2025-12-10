@@ -74,6 +74,7 @@ jobs:
         with:
           script: |
             const title = context.payload.issue.title.toLowerCase();
+            const body = (context.payload.issue.body || '').toLowerCase();
             const labels = [];
 
             // Issue type labels
@@ -89,12 +90,15 @@ jobs:
               labels.push('documentation');
             }
 
-            // Priority labels
-            if (title.includes('urgent') || title.includes('critical') || title.includes('blocker')) {
+            // Priority labels (check both title and body)
+            if (title.includes('urgent') || title.includes('critical') || title.includes('blocker') ||
+                body.includes('- [x] critical') || body.includes('- [x] high')) {
               labels.push('priority: high');
-            } else if (title.includes('medium') || title.includes('moderate')) {
+            } else if (title.includes('medium') || title.includes('moderate') ||
+                       body.includes('- [x] medium')) {
               labels.push('priority: medium');
-            } else if (title.includes('minor') || title.includes('low')) {
+            } else if (title.includes('minor') || title.includes('low') ||
+                       body.includes('- [x] low')) {
               labels.push('priority: low');
             }
 
