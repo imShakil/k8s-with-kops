@@ -1,0 +1,42 @@
+name: Tag Release Pipeline
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+permissions:
+  contents: write
+jobs:
+  run-on-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print tag name
+        run: |
+          echo "Tag triggered: $GITHUB_REF_NAME"
+      
+      - name: Create release metadata
+        run: |
+          cat > checksum.txt << EOF
+          Release: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          Repository: ${{ github.repository }}
+          EOF
+          cat checksum.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            checksum.txt
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
