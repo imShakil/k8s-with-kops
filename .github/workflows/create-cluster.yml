@@ -77,7 +77,10 @@ jobs:
     steps:
       - name: Validate and Set Cluster Name
         run: |
-          CLUSTER_INPUT="${{ github.event.inputs.cluster_name }}"
+          # Use defaults for push/PR events, inputs for manual dispatch
+          CLUSTER_INPUT="${{ github.event.inputs.cluster_name || 'dev-cluster' }}"
+          ENVIRONMENT="${{ github.event.inputs.environment || 'dev' }}"
+          
           # Validate cluster name format (alphanumeric and hyphens only)
           if [[ ! "$CLUSTER_INPUT" =~ ^[a-z0-9-]+$ ]]; then
             echo "❌ Cluster name must contain only lowercase letters, numbers, and hyphens"
@@ -91,8 +94,10 @@ jobs:
             FULL_CLUSTER_NAME="${CLUSTER_INPUT}.k8s.local"
           fi
           
-          echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=$ENVIRONMENT" >> $GITHUB_ENV
           echo "VALIDATED_CLUSTER_NAME=$FULL_CLUSTER_NAME" >> $GITHUB_ENV
+          echo "✅ Event: ${{ github.event_name }}"
+          echo "✅ Environment: $ENVIRONMENT"
           echo "✅ Cluster name: $FULL_CLUSTER_NAME"
       - name: Checkout Repo
         uses: actions/checkout@v3
