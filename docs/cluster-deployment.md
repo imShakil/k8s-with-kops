@@ -1,4 +1,4 @@
-# KOPD Cluster Deployment – GitHub Actions Guide
+# KOPS Cluster Deployment – GitHub Actions Guide
 
 This repository provides a GitHub Actions–based workflow to deploy and manage a Kubernetes cluster using kOps on AWS.
 
