@@ -69,7 +69,12 @@ detect_platform() {
 
 get_latest_version() {
     local url=$1
-    curl -fsSL "$url" | jq -r '.tag_name // .version'
+    # Enforce HTTPS for security
+    if [[ ! "$url" =~ ^https:// ]]; then
+        log "ERROR: Only HTTPS URLs are allowed. Received: $url"
+        exit 1
+    fi
+    curl --proto '=https' -fsSL "$url" | jq -r '.tag_name // .version'
 }
 
 install_jq() {
@@ -91,10 +96,10 @@ install_aws_cli() {
     if [[ "$platform" == linux-* ]]; then
         local arch="x86_64"
         [[ "$platform" == *arm64 ]] && arch="aarch64"
-        curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip" -o awscli.zip
+        curl --proto '=https' -sL "https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip" -o awscli.zip
         unzip -q awscli.zip && sudo ./aws/install && rm -rf aws awscli.zip
     elif [[ "$platform" == darwin-* ]]; then
-        curl -sL "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o awscli.pkg
+        curl --proto '=https' -sL "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o awscli.pkg
         sudo installer -pkg awscli.pkg -target / && rm awscli.pkg
     fi
 }
@@ -104,17 +109,17 @@ install_kops() {
     local version="$KOPS_VERSION"
     [[ "$version" == "latest" ]] && version=$(get_latest_version "https://api.github.com/repos/kubernetes/kops/releases/latest")
     log "Installing kOps ${version}..."
-    curl -fsSL "https://github.com/kubernetes/kops/releases/download/${version}/kops-$(detect_platform)" -o kops
+    curl --proto '=https' -fsSL "https://github.com/kubernetes/kops/releases/download/${version}/kops-$(detect_platform)" -o kops
     chmod +x kops && sudo mv kops /usr/local/bin/
 }
 
 install_kubectl() {
     command_exists kubectl && return
     local version="$KUBECTL_VERSION"
-    [[ "$version" == "latest" ]] && version=$(curl -sL https://dl.k8s.io/release/stable.txt)
+    [[ "$version" == "latest" ]] && version=$(curl --proto '=https' -sL https://dl.k8s.io/release/stable.txt)
     log "Installing kubectl ${version}..."
     local platform=$(detect_platform)
-    curl -fsSL "https://dl.k8s.io/release/${version}/bin/${platform//-//}/kubectl" -o kubectl
+    curl --proto '=https' -fsSL "https://dl.k8s.io/release/${version}/bin/${platform//-//}/kubectl" -o kubectl
     chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 }
 
@@ -123,7 +128,7 @@ install_terraform() {
     local version="$TERRAFORM_VERSION"
     [[ "$version" == "latest" ]] && version=$(get_latest_version "https://api.releases.hashicorp.com/v1/releases/terraform/latest")
     log "Installing Terraform ${version}..."
-    curl -fsSL "https://releases.hashicorp.com/terraform/${version}/terraform_${version}_$(detect_platform).zip" -o terraform.zip
+    curl --proto '=https' -fsSL "https://releases.hashicorp.com/terraform/${version}/terraform_${version}_$(detect_platform).zip" -o terraform.zip
     unzip -q terraform.zip && chmod +x terraform && sudo mv terraform /usr/local/bin/ && rm terraform.zip
 }
 
