@@ -10,7 +10,17 @@ TERRAFORM_VERSION="latest"
 LOG_FILE="$HOME/kops/prepare-vm.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 
-log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"; }
+log() { 
+    msg=$1
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $msg" | tee -a "$LOG_FILE";
+    return 0;
+}
+
+error_exit() {
+    msg=$1
+    log "ERROR: $msg"
+    exit 1
+} # Noncompliant
 
 show_usage() {
     cat << EOF
