@@ -9,14 +9,17 @@ mkdir -p "$LOG_DIR"
 
 # Logging function
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+    msg=$1
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $msg" | tee -a "$LOG_FILE";
+    return 0;
 }
 
 # Error handling function
 error_exit() {
-    log "ERROR: $1"
+    msg=$1
+    log "ERROR: $msg"
     exit 1
-}
+}  # Noncompliant
 
 log "Starting cluster creation script"
 
@@ -43,14 +46,14 @@ log "  TOPOLOGY: $TOPOLOGY"
 
 # Validate required environment variables
 log "Validating environment variables..."
-[ -z "$STATE_STORE" ] && error_exit "KOPS_STATE_STORE environment variable is required"
-[ -z "$ZONES" ] && error_exit "KOPS_ZONES environment variable is required"
+[[ -z "$STATE_STORE" ]] && error_exit "KOPS_STATE_STORE environment variable is required"
+[[ -z "$ZONES" ]] && error_exit "KOPS_ZONES environment variable is required"
 log "Environment variables validated successfully"
 
 # Validate numeric node count
 log "Validating node count..."
 [[ ! "$NODE_COUNT" =~ ^[0-9]+$ ]] && error_exit "Node count must be a positive integer"
-[ "$NODE_COUNT" -lt 1 ] && error_exit "Node count must be at least 1"
+[[ "$NODE_COUNT" -lt 1 ]] && error_exit "Node count must be at least 1"
 log "Node count validation passed"
 
 # Check required tools
@@ -66,7 +69,7 @@ log "AWS credentials validated successfully"
 
 # Check and generate SSH key if needed
 log "Checking SSH key..."
-if [ ! -f "$SSH_KEY_PATH" ]; then
+if [[ ! -f "$SSH_KEY_PATH" ]]; then
     log "SSH key not found at $SSH_KEY_PATH, generating new key..."
     ssh-keygen -t rsa -b 4096 -f "$SSH_KEY_PATH" -N "" -C "kops-cluster-$CLUSTER_NAME" || error_exit "Failed to generate SSH key"
     log "SSH key generated at $SSH_KEY_PATH"

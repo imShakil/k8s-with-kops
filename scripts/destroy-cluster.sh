@@ -13,18 +13,26 @@ mkdir -p "$LOG_DIR"
 
 # Logging function
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+    msg=$1
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $msg" | tee -a "$LOG_FILE";
+    return 0;
 }
+
+# Error handling function
+error_exit() {
+    msg=$1
+    log "ERROR: $msg"
+    exit 1
+} # Noncompliant
 
 log "Starting cluster destruction script"
 log "Project directory: $PROJECT_DIR"
 
 # Validate project structure
-if [ ! -d "$PROJECT_DIR/kops-init" ] && [ ! -d "$PROJECT_DIR/kops-infra" ]; then
-    log "ERROR: Invalid project directory structure"
+if [[ ! -d "$PROJECT_DIR/kops-init" ]] && [[ ! -d "$PROJECT_DIR/kops-infra" ]]; then
     log "Make sure you're running this script from within the k8s-with-kops project"
-    exit 1
-fi
+    error_exit "Invalid project directory structure"
+fi # Noncompliant
 
 # Get parameters
 KOPS_CLUSTER_NAME="${1:-${KOPS_CLUSTER_NAME:-}}"
@@ -32,12 +40,12 @@ KOPS_STATE_STORE="${2:-${KOPS_STATE_STORE:-}}"
 AWS_PROFILE="${3:-${AWS_PROFILE:-}}"
 
 # Validate parameters
-if [ -z "$KOPS_CLUSTER_NAME" ] || [ -z "$KOPS_STATE_STORE" ] || [ -z "$AWS_PROFILE" ]; then
+if [[ -z "$KOPS_CLUSTER_NAME" ]] || [[ -z "$KOPS_STATE_STORE" ]] || [[ -z "$AWS_PROFILE" ]]; then
     log "ERROR: Missing required parameters"
-    echo "Usage: $0 <cluster-name> <state-store> <aws-profile>"
-    echo "  or set KOPS_CLUSTER_NAME, KOPS_STATE_STORE, and AWS_PROFILE env vars"
-    echo "Example: $0 my-cluster.k8s.local s3://my-kops-state kops-profile"
-    exit 1
+    log "Usage: $0 <cluster-name> <state-store> <aws-profile>"
+    log " or set KOPS_CLUSTER_NAME, KOPS_STATE_STORE, and AWS_PROFILE env vars"
+    log "Example: $0 my-cluster.k8s.local s3://my-kops-state kops-profile"
+    error_exit "Exiting due to missing parameters"
 fi
 
 # Set AWS profile
@@ -49,20 +57,19 @@ log "AWS Profile: $AWS_PROFILE"
 
 # Confirm destruction
 read -p "Are you sure you want to destroy this cluster? (yes/no): " confirm
-[ "$confirm" != "yes" ] && { log "Destruction aborted by user"; exit 0; }
+[[ "$confirm" != "yes" ]] && { log "Destruction aborted by user"; exit 0; }
 
 # Delete kops cluster first
 log "Deleting kops cluster..."
 kops delete cluster --name="$KOPS_CLUSTER_NAME" --state="$KOPS_STATE_STORE" --yes 2>&1 | tee -a "$LOG_FILE" || log "WARNING: Cluster deletion failed"
 
 # Destroy kops infrastructure
-if [ -d "$PROJECT_DIR/kops-infra" ]; then
+if [[ -d "$PROJECT_DIR/kops-infra" ]]; then
     log "Destroying kops infrastructure..."
     cd "$PROJECT_DIR/kops-infra"
     terraform init -input=false -backend-config=backend.hcl 2>&1 | tee -a "$LOG_FILE"
     if ! terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE"; then
-        log "ERROR: Infrastructure destroy failed - exiting"
-        exit 1
+        error_exit "Infrastructure destroy failed - exiting"
     fi
     cd - > /dev/null
     log "Infrastructure destroyed"
@@ -79,17 +86,17 @@ aws s3 rm "$KOPS_STATE_STORE" --recursive 2>/dev/null || log "WARNING: S3 recurs
 
 # Clean object versions
 versions=$(aws s3api list-object-versions --bucket "$BUCKET_NAME" --query 'Versions[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null || true)
-if [ -n "$versions" ]; then
+if [[ -n "$versions" ]]; then
     echo "$versions" | while read key version; do
-        [ -n "$key" ] && aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null || true
+        [[ -n "$key" ]] && aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null || true
     done
 fi
 
 # Clean delete markers
 markers=$(aws s3api list-object-versions --bucket "$BUCKET_NAME" --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null || true)
-if [ -n "$markers" ]; then
+if [[ -n "$markers" ]]; then
     echo "$markers" | while read key version; do
-        [ -n "$key" ] && aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null || true
+        [[ -n "$key" ]] && aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null || true
     done
 fi
 
@@ -97,14 +104,13 @@ set -e  # Re-enable exit on error
 log "S3 state store cleanup completed"
 
 # Destroy kops-init infrastructure
-if [ -d "$PROJECT_DIR/kops-init" ]; then
+if [[ -d "$PROJECT_DIR/kops-init" ]]; then
     log "Destroying kops-init infrastructure..."
     export AWS_PROFILE=default
     cd "$PROJECT_DIR/kops-init"
     terraform init -input=false 2>&1 | tee -a "$LOG_FILE"
     if ! terraform destroy -auto-approve 2>&1 | tee -a "$LOG_FILE"; then
-        log "ERROR: Infrastructure destroy failed - exiting"
-        exit 1
+        error_exit "Infrastructure destroy failed - exiting"
     fi
     cd - > /dev/null
     log "Infrastructure destroyed"

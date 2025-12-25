@@ -9,14 +9,17 @@ mkdir -p "$LOG_DIR"
 
 # Logging function
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+    msg=$1
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $msg" | tee -a "$LOG_FILE";
+    return 0;
 }
 
 # Error handling function
 error_exit() {
-    log "ERROR: $1"
+    msg=$1
+    log "ERROR: $msg"
     exit 1
-}
+} # Noncompliant
 
 log "Starting IAM profile update script"
 
@@ -32,9 +35,9 @@ log "  AWS_PROFILE: $AWS_PROFILE"
 
 # Validate required environment variables
 log "Validating environment variables..."
-[ -z "$AWS_ACCESS_KEY_ID" ] && error_exit "AWS_ACCESS_KEY_ID environment variable is required"
-[ -z "$AWS_SECRET_ACCESS_KEY" ] && error_exit "AWS_SECRET_ACCESS_KEY environment variable is required"
-[ -z "$AWS_REGION" ] && error_exit "AWS_REGION environment variable is required"
+[[ -z "$AWS_ACCESS_KEY_ID" ]] && error_exit "AWS_ACCESS_KEY_ID environment variable is required"
+[[ -z "$AWS_SECRET_ACCESS_KEY" ]] && error_exit "AWS_SECRET_ACCESS_KEY environment variable is required"
+[[ -z "$AWS_REGION" ]] && error_exit "AWS_REGION environment variable is required"
 log "Environment variables validated successfully"
 
 # Configure AWS CLI
