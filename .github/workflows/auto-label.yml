@@ -15,17 +15,17 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.0
         
       - name: Label based on file changes
         if: github.event_name == 'pull_request'
-        uses: actions/labeler@v6
+        uses: actions/labeler@v6.0.1
         with:
           configuration-path: .github/labeler.yml
           sync-labels: true
       - name: Label PR based on title
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v8.0.0
         with:
           script: |
             const title = context.payload.pull_request.title.toLowerCase();
@@ -77,7 +77,7 @@ jobs:
 
       - name: Label issue based on title
         if: github.event_name == 'issues'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v8.0.0
         with:
           script: |
             const title = context.payload.issue.title.toLowerCase();
