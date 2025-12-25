@@ -20,6 +20,7 @@ error_exit() {
     msg=$1
     log "ERROR: $msg"
     exit 1
+    return 1;
 } # Noncompliant
 
 show_usage() {
