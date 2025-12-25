@@ -19,32 +19,36 @@ jobs:
     
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6.0.0
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@56d6a583f00f6bad6d19d91d53a7bc3b8143d0e9
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8
         with:
           terraform_version: 1.7.0
           terraform_wrapper: false
 
-      - name: Install kOps
+      - name: Install kOps and kubectl
+        shell: bash
         run: |
-          KOPS_VERSION=$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)
-          curl -Lo kops "https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64"
+          KOPS_VERSION=$(curl --proto =${PROTOCOL} -L -s ${PROTOCOL}://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)
+          curl --proto =${PROTOCOL} -Lo kops "${PROTOCOL}://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64"
           chmod +x kops && sudo mv kops /usr/local/bin/
-          echo "✅ kOps installed"
+          echo "✅ Tools installed"
+        env:
+          PROTOCOL: "https"
 
       - name: Set Cleanup Variables
+        env:
+          CLUSTER_NAME: ${{ inputs.cluster_name }}
+          ENVIRONMENT: ${{ inputs.environment }}
         run: |
-          CLUSTER_NAME="${{ inputs.cluster_name }}"
-          ENVIRONMENT="${{ inputs.environment }}"
           KOPS_STATE_STORE="s3://${{ vars.TF_STATE_BUCKET }}/$ENVIRONMENT/clusters/"
 
           echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV

@@ -2,7 +2,6 @@
 
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=imShakil_k8s-with-kops&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=imShakil_k8s-with-kops)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=imShakil_k8s-with-kops&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=imShakil_k8s-with-kops)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=imShakil_k8s-with-kops&metric=coverage)](https://sonarcloud.io/summary/new_code?id=imShakil_k8s-with-kops)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=imShakil_k8s-with-kops&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=imShakil_k8s-with-kops)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=imShakil_k8s-with-kops&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=imShakil_k8s-with-kops)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=imShakil_k8s-with-kops&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=imShakil_k8s-with-kops)
