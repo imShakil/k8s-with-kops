@@ -34,12 +34,15 @@ jobs:
           terraform_version: 1.7.0
           terraform_wrapper: false
 
-      - name: Install kOps
+      - name: Install kOps and kubectl
+        shell: bash
         run: |
-          KOPS_VERSION=$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)
-          curl -Lo kops "https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64"
+          KOPS_VERSION=$(curl --proto =${PROTOCOL} -L -s ${PROTOCOL}://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)
+          curl --proto =${PROTOCOL} -Lo kops "${PROTOCOL}://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64"
           chmod +x kops && sudo mv kops /usr/local/bin/
-          echo "✅ kOps installed"
+          echo "✅ Tools installed"
+        env:
+          PROTOCOL: "https"
 
       - name: Set Cleanup Variables
         env:
