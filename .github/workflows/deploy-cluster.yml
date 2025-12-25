@@ -32,124 +32,152 @@ on:
         required: true
         type: string
 
+env:
+  CLUSTER_NAME: ${{ inputs.cluster_name }}
+  ENVIRONMENT: ${{ inputs.environment }}
+
 jobs:
   deploy:
     name: Deploy kOps Cluster
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.7.0
+          terraform_version: "1.7.0"
           terraform_wrapper: false
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Install kOps and kubectl
+        shell: bash
         run: |
-          KOPS_VERSION=$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)
-          curl -Lo kops "https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64"
-          chmod +x kops && sudo mv kops /usr/local/bin/
-          
-          KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
-          curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-          echo "✅ Tools installed"
+          set -euo pipefail
+
+          KOPS_VERSION="$(curl --fail --silent --show-error \
+            https://api.github.com/repos/kubernetes/kops/releases/latest \
+            | jq -r '.tag_name')"
+
+          curl --fail --silent --show-error -Lo kops \
+            "https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64"
+
+          chmod +x kops && sudo mv kops /usr/local/bin/kops
+
+          KUBECTL_VERSION="$(curl --fail --silent --show-error \
+            https://dl.k8s.io/release/stable.txt)"
+
+          curl --fail --silent --show-error -Lo kubectl \
+            "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
 
       - name: SSH Key Setup
+        shell: bash
         run: |
+          set -euo pipefail
+
           mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
-          echo "✅ SSH key setup completed"
+          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" -C "kops-${CLUSTER_NAME}"
 
       - name: Check Cluster Existence
+        shell: bash
         run: |
-          KOPS_STATE_STORE="s3://${{ vars.TF_STATE_BUCKET }}/${{ inputs.environment }}/clusters/"
-          echo "KOPS_STATE_STORE=$KOPS_STATE_STORE" >> $GITHUB_ENV
-          echo "CLUSTER_NAME=${{ inputs.cluster_name }}" >> $GITHUB_ENV
-          
-          if kops get cluster --name=${{ inputs.cluster_name }} --state=$KOPS_STATE_STORE >/dev/null 2>&1; then
-            echo "⚠️  Cluster exists"
-            echo "CLUSTER_EXISTS=true" >> $GITHUB_ENV
+          set -euo pipefail
+
+          KOPS_STATE_STORE="s3://${{ vars.TF_STATE_BUCKET }}/${ENVIRONMENT}/clusters"
+          echo "KOPS_STATE_STORE=${KOPS_STATE_STORE}" >> "$GITHUB_ENV"
+
+          if kops get cluster \
+            --name="${CLUSTER_NAME}" \
+            --state="${KOPS_STATE_STORE}" >/dev/null 2>&1; then
+            echo "CLUSTER_EXISTS=true" >> "$GITHUB_ENV"
           else
-            echo "✅ Creating new cluster"
-            echo "CLUSTER_EXISTS=false" >> $GITHUB_ENV
+            echo "CLUSTER_EXISTS=false" >> "$GITHUB_ENV"
           fi
 
       - name: Create Cluster
         if: ${{ env.CLUSTER_EXISTS == 'false' }}
+        shell: bash
+        env:
+          ZONES: ${{ inputs.available_zones }} 
+          MASTER_NODES: ${{ inputs.master_nodes }} 
+          WORKER_NODES: ${{ inputs.worker_nodes }} 
+          MASTER_SIZE: ${{ inputs.master_size }} 
+          WORKER_SIZE: ${{ inputs.worker_size }}
         run: |
+          set -euo pipefail
+
           kops create cluster \
-            --name=${{ inputs.cluster_name }} \
-            --state=$KOPS_STATE_STORE \
-            --zones=${{ inputs.available_zones }} \
-            --node-count="${{ inputs.worker_nodes }}" \
-            --node-size="${{ inputs.worker_size }}" \
-            --master-size="${{ inputs.master_size }}" \
-            --master-count="${{ inputs.master_nodes }}" \
+            --name="${CLUSTER_NAME}" \
+            --state="${KOPS_STATE_STORE}" \
+            --zones="$ZONES" \
+            --node-count="$WORKER_NODES" \
+            --node-size="$WORKER_SIZE" \
+            --master-count="$MASTER_NODES" \
+            --master-size="$MASTER_SIZE" \
             --networking=calico \
-            --dns-zone=${{ inputs.cluster_name }} \
-            --ssh-public-key="~/.ssh/id_rsa.pub"
-          
-          # Add SSH key after cluster is created
-          kops create sshpublickey ${{ inputs.cluster_name }} -i ~/.ssh/id_rsa.pub --state=$KOPS_STATE_STORE
-          echo "✅ Cluster configuration created"
+            --dns-zone="${CLUSTER_NAME}" \
+            --ssh-public-key="$HOME/.ssh/id_rsa.pub"
 
       - name: Generate Terraform Files
+        shell: bash
         run: |
+          set -euo pipefail
+
           kops update cluster \
-            --name=${{ inputs.cluster_name }} \
-            --state=$KOPS_STATE_STORE \
+            --name="${CLUSTER_NAME}" \
+            --state="${KOPS_STATE_STORE}" \
             --yes --admin \
-            --out ./kops-infra \
-            --target terraform
-          echo "✅ Terraform files generated"
+            --out="./kops-infra" \
+            --target=terraform
 
       - name: Deploy Infrastructure
         working-directory: ./kops-infra
+        shell: bash
         run: |
-          cat > backend.tf << EOF
+          set -euo pipefail
+
+          cat > backend.tf <<EOF
           terraform {
             backend "s3" {
               bucket = "${{ vars.TF_STATE_BUCKET }}"
-              key    = "${{ inputs.environment }}/kops-infra/${{ inputs.cluster_name }}"
+              key    = "${ENVIRONMENT}/${CLUSTER_NAME}/kops.tfstate"
               region = "${{ vars.AWS_REGION }}"
             }
           }
           EOF
-          
-          terraform init
-          terraform plan -out=tfplan
-          terraform apply -auto-approve tfplan
-          echo "✅ Infrastructure deployed"
+
+          terraform init -input=false
+          terraform apply -auto-approve
 
       - name: Validate Cluster
+        shell: bash
         run: |
-          kops export kubeconfig --name="${{ inputs.cluster_name }}" --state="$KOPS_STATE_STORE" --admin
-          kops validate cluster --name="${{ inputs.cluster_name }}" --state="$KOPS_STATE_STORE" --wait=10m
-          
+          set -euo pipefail
+
+          kops export kubeconfig \
+            --name="${CLUSTER_NAME}" \
+            --state="${KOPS_STATE_STORE}" \
+            --admin
+
+          kops validate cluster \
+            --name="${CLUSTER_NAME}" \
+            --state="${KOPS_STATE_STORE}" \
+            --wait=10m
+
           kubectl get nodes
-          kubectl get namespaces
-          
-          # Share kubeconfig and SSH keys
-          S3_PATH="s3://${{ vars.TF_STATE_BUCKET }}/${{ inputs.environment }}/${{ inputs.cluster_name }}"
-          aws s3 cp ~/.kube/config "$S3_PATH/kubeconfig"
-          aws s3 cp ~/.ssh/id_rsa "$S3_PATH/ssh-key"
-          aws s3 cp ~/.ssh/id_rsa.pub "$S3_PATH/ssh-key.pub"
-          
-          echo "✅ Cluster ready and access files shared"
-          echo "📋 Cluster: ${{ inputs.cluster_name }}"
-          echo "🔗 Kubeconfig: aws s3 cp $S3_PATH/kubeconfig ~/.kube/config"
-          echo "🔐 SSH Key: aws s3 cp $S3_PATH/ssh-key ~/.ssh/${{ inputs.cluster_name }}-key && chmod 600 ~/.ssh/${{ inputs.cluster_name }}-key"
-          echo "🔑 SSH Usage: ssh -i ~/.ssh/${{ inputs.cluster_name }}-key ubuntu@<node-ip>"
+
+          aws s3 cp ~/.kube/config \
+            "s3://${{ vars.TF_STATE_BUCKET }}/${ENVIRONMENT}/${CLUSTER_NAME}/kubeconfig"
+
+          aws s3 cp ~/.ssh/id_rsa.pub \
+            "s3://${{ vars.TF_STATE_BUCKET }}/${ENVIRONMENT}/${CLUSTER_NAME}/ssh-key.pub"

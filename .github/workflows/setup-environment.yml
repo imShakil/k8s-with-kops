@@ -28,11 +28,12 @@ jobs:
     steps:
       - name: Validate and Set Cluster Name
         id: validate
+        env:
+          CLUSTER_INPUT: ${{ inputs.cluster_name }}
         run: |
-          CLUSTER_INPUT="${{ inputs.cluster_name }}"
           
-          if [[ ! "$CLUSTER_INPUT" =~ ^[a-z0-9-]+$ ]]; then
-            echo "❌ Cluster name must contain only lowercase letters, numbers, and hyphens"
+          if [[ ! "$CLUSTER_INPUT" =~ ^[a-z0-9.-]+$ ]]; then
+            echo "❌ Cluster name must contain only lowercase letters, numbers, hyphens, and dots"
             exit 1
           fi
           
